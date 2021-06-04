@@ -1,88 +1,102 @@
 const { json } = require("express");
 const express = require("express");
+const mongoose = require("mongoose");
 const fs = require("fs");
 const app = express();
 app.use(express.json());
-app.get("/products", (req, res) => {
-  const { title} = req.query;
+
+const ProductSchema = mongoose.Schema({
+  _id: mongoose.Schema.Types.ObjectId,
+  title: { type: String, required: true },
+  price: { type: String, required: true },
+  description: { type: String, required: true },
+  category: { type: String, required: true },
+  image: { type: String, required: true }
  
-  fs.readFile("products.json", "utf8", (err, products) => {
-    const productsArr = JSON.parse(products);
-    if (title) {
-      const productsfiltered = productsArr.filter((product) =>
-       product.title.includes(title)
-       );
-      res.send(productsfiltered ? productsfiltered : "NO found for your query");
-    } else {
-      res.send(productsArr);
-    }
-  });
+
+ 
 });
-app.get("/products/:id", (req, res) => {
-  fs.readFile("products.json", "utf8", (err, products) => {
-    const productsArr = JSON.parse(products);
-    const product = productsArr.find((item) => item.id === +req.params.id);
-    if (product) {
-      res.send(product);
-    } else {
-      res.status(404);
-      res.send();
-    }
-  });
-});
-app.post("/products", (req, res) => {
-  fs.readFile("products.json", "utf8", (err, products) => {
-    const productsArr = JSON.parse(products);
-    console.log(req.body);
-    productsArr.push({
-      id: productsArr.length + 1,
-      title: req.body.title,
-      price: req.body.price,
-      description: req.body.description,
-      category: req.body.category,
-      image: req.body.image,
-    });
-    fs.writeFile("products.json", JSON.stringify(productsArr), (err) => {
-      console.log(err);
-      res.send("success");
-    });
-  });
-});
-app.put("/products/:id", (req, res) => {
-  fs.readFile("products.json", "utf8", (err, products) => {
-    const productsArr = JSON.parse(products);
-    const { title, image, category, description, price } = req.body;
-    const { id } = req.params;
-    const updatedProductsArr = productsArr.map((product) => {
-      if (product.id === +id) {
-        return {
-          ...product,
-          title,
-          image,
-          category,
-          description,
-          price,
-        };
+
+const Product = mongoose.model("Product", ProductSchema);
+
+app.get("/products", (req, res) => {
+  const { title } = req.query;
+  Product.find({})
+    .exec()
+    .then((productsArr) => {
+      if (title) {
+        const productsfiltered = productsArr.filter((product) =>
+          product.title.includes(title)
+        );
+        if (productsfiltered.length != 0) {
+          res.send(productsfiltered);
+        } else {
+          res.send("Not found");
+        }
       } else {
-        return product;
+        res.send(productsArr);
       }
     });
-    fs.writeFile("products.json", JSON.stringify(updatedProductsArr), (err) => {
-      console.log(err);
-      res.send("success");
+});
+
+app.get("/products/:id", (req, res) => {
+  const { id } = req.params;
+  Product.findById(id)
+    .then((product) => {
+      res.send(product);
+    })
+    .catch((error) => {
+      res.status(500);
+      res.send(error.message);
     });
+});
+
+app.post("/products", (req, res) => {
+  Product.insertMany({
+    title: req.body.title,
+    price: req.body.price,
+    description: req.body.description,
+    category: req.body.category,
+    image: req.body.image,
+  }).then(() => {
+    res.send("The product is added");
   });
 });
+
+app.put("/products/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updates = req.body;
+    // const options = { new: false};
+    const resulte = await Product.findByIdAndUpdate(id, updates);
+    res.send("The product has been updated");
+  } catch (error) {
+    console.log(error.message);
+  }
+});
+
 app.delete("/products/:id", (req, res) => {
-  fs.readFile("products.json", "utf8", (err, products) => {
-    const productsArr = JSON.parse(products);
-    const updatedProductsArr = productsArr.filter(
-      (product) => product.id !== +req.params.id
-    );
-    fs.writeFile("products.json", JSON.stringify(updatedProductsArr), (err) => {
-      console.log(err);
-      res.send("successs");
+  const id = req.params.id;
+  Product.findByIdAndDelete(id)
+    .then((result) => {
+      res.json({
+        message: "The product has been deleted",
+      });
+    })
+    .catch((error) => {
+      res.status(400);
+      res.send(error.message);
     });
-  });
 });
-app.listen(7090);
+
+mongoose
+  .connect("mongodb://localhost/my_database", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useFindAndModify: false,
+    useCreateIndex: true,
+  })
+  .then(() => {
+    console.log("connected");
+    app.listen(7090);
+  });
