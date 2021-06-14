@@ -31,17 +31,17 @@ let validProduct = (_bodyData) => {
 
 const Product = mongoose.model("Product", ProductSchema);
 
-app.post("/admin", (req, res) => {
-  const { username, password } = req.body;
-  if (
-    username === process.env.DB_USERNAME &&
-    password === process.env.DB_PASSWORD
-  ) {
-    res.send({});
-  } else {
-    res.send("The username or password is incorrect");
-  }
-});
+// app.post("/admin", (req, res) => {
+//   const { username, password } = req.body;
+//   if (
+//     username === process.env.DB_USERNAME &&
+//     password === process.env.DB_PASSWORD
+//   ) {
+//     res.send({});
+//   } else {
+//     res.send("The username or password is incorrect");
+//   }
+// });
 
 app.get("/api/products", (req, res) => {
   const { title } = req.query;
