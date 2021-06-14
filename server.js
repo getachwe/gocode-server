@@ -146,7 +146,7 @@ app.put("/api/products/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const updates = req.body;
-    // const options = { new: false};
+    //const options = { new: false};
     const resulte = await Product.findByIdAndUpdate(id, updates);
     res.send("The product has been updated");
   } catch (error) {
